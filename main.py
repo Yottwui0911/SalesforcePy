@@ -8,6 +8,7 @@ from time import sleep
 from selenium.webdriver.support.ui import WebDriverWait
 import get_auth_code as gac
 import salesforce
+import create_template as ct
 
 try:
     setting_path = "./setting.json"
@@ -68,7 +69,8 @@ driver.switch_to.window(driver.window_handles[0])
 salesforce.Login(driver, auth_code)
 
 result = salesforce.GetServiceRecord(driver, date)
-print(result)
 
 # ドライバを閉じる
 driver.quit()
+
+ct.CreateTemplate(result)
