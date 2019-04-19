@@ -1,35 +1,48 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sys
 import json
+import datetime
 from selenium import webdriver
 from time import sleep
 from selenium.webdriver.support.ui import WebDriverWait
-import re
+import get_auth_code as gac
+import salesforce
+import create_template as ct
 
-setting_path = "./setting.json"
-setting = open(setting_path, "r")
-setting_json = json.load(setting)
+try:
+    setting_path = "./setting.json"
+    setting = open(setting_path, "r")
+    setting_json = json.load(setting)
+except:
+    print(u'setting.jsonを同じ階層に配置してください。')
+    exit
+
+while True:
+    print (u'取得したい週の日付を入力してください。')
+    print (u'例：2019-11-18')
+    input_test_word = raw_input('>>>  ')
+    try:
+        tdatetime = datetime.datetime.strptime(input_test_word, '%Y-%m-%d')
+        date = datetime.date(tdatetime.year, tdatetime.month, tdatetime.day)
+    except:
+        print(u'日付のフォーマットで入力してください。')
+        continue
+    break
+
+try:
+    driver=webdriver.Chrome(executable_path=r'chromedriver.exe')
+except:
+    print(u'chromedriver.exeを同じ階層に配置してください。')
+    exit
 
 login_url = setting_json['salseforce']['team_url']
-
-driver=webdriver.Chrome(executable_path='chrome_drive_path')
-driver.get(login_url)
 
 user_name = setting_json['salseforce']['user_name']
 password = setting_json['salseforce']['password']
 
-# ユーザーネーム入力
-user_input=driver.find_element_by_id('username')
-user_input.send_keys(user_name)
-
-# パスワード入力
-pass_input=driver.find_element_by_id('password')
-pass_input.send_keys(password)
-
-# ログインボタンクリック
-driver.find_element_by_id('Login').click()
+# salesforceの画面を開く
+salesforce.OpenSalesForce(driver, login_url, user_name, password)
 
 # 新しいウィンドウを開く
 driver.execute_script("window.open('https://outlook.office.com/mail/')")
@@ -42,29 +55,8 @@ driver.switch_to.window(driver.window_handles[1])
 outlook_user_name = setting_json['outlook']['user_name']
 outlook_password = setting_json['outlook']['password']
 
-# outookのIDの入力
-outlook_user_input=driver.find_element_by_id('i0116')
-outlook_user_input.send_keys(outlook_user_name)
-driver.find_element_by_id('idSIButton9').click()
-
-# outookのパスワードの入力
-outlook_password_input=driver.find_element_by_id('i0118')
-outlook_password_input.send_keys(outlook_password)
-
-# サインインボタンクリック
-sleep(3)
-driver.find_element_by_id('idSIButton9').click()
-
-# サインイン維持
-sleep(3)
-driver.find_element_by_id('idSIButton9').click()
-
-# outlookが開かれるのを待つ
-sleep(7)
-
-# Salesforceから送られてくるID確認のメールから認証コードを取得する
-element = driver.find_element_by_xpath("//div[contains(@aria-label, 'noreply@salesforce.com')]")
-auth_code =  re.sub(u"^.*確認コード: (\d*) 最近.*$", r"\1", element.text, flags=(re.MULTILINE | re.DOTALL))
+# 2段階認証コードの取得
+auth_code = gac.GetAuthCode(driver, outlook_user_name, outlook_password)
 
 # エラー処理
 if(auth_code == 0):
@@ -73,7 +65,12 @@ if(auth_code == 0):
 
 driver.switch_to.window(driver.window_handles[0])
 
-# 2段階認証コードの入力
-outlook_user_input=driver.find_element_by_id('emc')
-outlook_user_input.send_keys(auth_code)
-driver.find_element_by_id('save').click()
+# salesforceにlogin
+salesforce.Login(driver, auth_code)
+
+result = salesforce.GetServiceRecord(driver, date)
+
+# ドライバを閉じる
+driver.quit()
+
+ct.CreateTemplate(result)
