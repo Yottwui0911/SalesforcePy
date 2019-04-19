@@ -25,10 +25,12 @@ def GetWorkRecord(df):
     work_record = []
     for i, row in df.iterrows():
         s = row[u'日付'].strftime("%m/%d") + "(" + row[u'曜日']+ ")"
-        if(row[u'出社'] != row[u'出社'] or row[u'退社'] != row[u'退社']):
-            s += '\t' + u"休暇"
+        if(row[u'出社'] == row[u'出社']):
+            s += '\t' + row[u'出社'] + ' ～ '.decode('utf-8')
+            if(row[u'退社'] == row[u'退社']):
+                s +=row[u'退社']
         else:
-            s += '\t' + row[u'出社'] + ' ～ '.decode('utf-8') + row[u'退社']
+            s += '\t' + u"休暇"
 
         if(row[u'イベント／勤務状況'] == row[u'イベント／勤務状況']):
                 s += '\t' + row[u'イベント／勤務状況']
