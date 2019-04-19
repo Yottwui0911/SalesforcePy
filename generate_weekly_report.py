@@ -48,7 +48,7 @@ salesforce.OpenSalesForce(driver, login_url, user_name, password)
 driver.execute_script("window.open('https://outlook.office.com/mail/')")
 
 # 新しいタブの出現を待つ
-WebDriverWait(driver, 3).until(lambda d: len(d.window_handles) > 1)
+sleep(3)
 driver.switch_to.window(driver.window_handles[1])
 
 # outlookのID,passwordを設定ファイルから取得
@@ -74,3 +74,5 @@ result = salesforce.GetServiceRecord(driver, date)
 driver.quit()
 
 ct.CreateTemplate(result)
+
+sleep(10000)
